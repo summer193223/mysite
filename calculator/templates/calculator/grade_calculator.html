@@ -1,0 +1,458 @@
+{% extends "calculator/base.html" %}
+{% block title %}기말고사 최저점 계산기{% endblock %}
+{% block content %}
+  <h1>기말고사 최저점 계산기</h1>
+  <div class="subtitle">
+    과목별로 탭을 선택해서, 중간 · 수행 · 계수를 입력하고 각 등급에 필요한 기말고사 최소 점수를 확인할 수 있습니다.
+  </div>
+
+  <div class="card card-layout">
+    <!-- 왼쪽: 세로 탭 -->
+    <div class="tab-column">
+      <div id="tabList">
+        <!-- JS로 탭 버튼이 채워집니다 -->
+        </div>
+
+    <div class="tab-actions">
+      <button class="btn btn-secondary" type="button" onclick="addSubject()">과목 추가</button>
+      <button class="btn btn-delete tab-delete-btn" type="button" onclick="deleteCurrentSubject()">현재 과목 삭제</button>
+        </div>
+
+    </div>
+
+    <!-- 오른쪽: 현재 과목 입력/결과 패널 -->
+    <div id="subjectPanel" class="subject-panel">
+  <!-- 기본 정보 입력 -->
+  <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:10px;">
+    <div>
+      <label>
+        과목 이름<br>
+        <input type="text" id="subjectName" class="subject-name" style="width:120px; text-align:left;">
+      </label>
+    </div>
+    <div>
+      <label>
+        중간고사 점수 (0~100)<br>
+        <input type="number" id="midScore" step="0.5">
+      </label>
+    </div>
+    <div>
+      <label>
+        중간고사 계수<br>
+        <input type="number" id="midCoef" step="0.5">
+      </label>
+    </div>
+    <div>
+      <label>
+        기말고사 계수<br>
+        <input type="number" id="finalCoef" step="0.5">
+      </label>
+    </div>
+    <div>
+      <label>
+        총 수행평가 점수<br>
+        <input type="number" id="perfTotal" step="0.5" readonly style="background:#f0f2fa;">
+      </label>
+    </div>
+  </div>
+
+  <!-- 수행평가 항목 목록 -->
+  <div style="margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <span style="font-size:0.85rem; color:#555;">수행평가 항목별 점수</span>
+      <button class="btn btn-secondary" type="button" onclick="addPerfItem()">수행평가 추가</button>
+    </div>
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+      <thead>
+        <tr>
+          <th style="width:60px;">번호</th>
+          <th>점수</th>
+          <th style="width:70px;">삭제</th>
+        </tr>
+      </thead>
+      <tbody id="perfBody">
+        <!-- JS로 수행평가 항목이 채워집니다 -->
+      </tbody>
+    </table>
+  </div>
+
+  <button class="btn" type="button" onclick="calculateActive()">이 과목 계산</button>
+
+  <div class="note">
+    • 계수는 “10점 만점에서 몇 점을 배당하는지” 기준 (예: 중간 3, 기말 3, 수행 4라면 중간/기말 계수에 3 입력)<br>
+    • 수행평가 점수는 위 항목들의 합으로 자동 계산됩니다.<br>
+    • 이미 현재 점수만으로 등급 컷을 넘겼으면 “0 (이미 확보)”로 표시됩니다.
+  </div>
+
+  <!-- 기존 결과 표는 그대로 유지 -->
+  <table style="margin-top:10px;">
+    <thead>
+      <tr>
+        <th>등급</th>
+        <th>컷</th>
+        <th>필요 기말 최소 점수</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>A+</td>
+        <td id="cut-Aplus"></td>
+        <td id="result-Aplus" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>A0</td>
+        <td id="cut-A0"></td>
+        <td id="result-A0" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>A-</td>
+        <td id="cut-Aminus"></td>
+        <td id="result-Aminus" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>B+</td>
+        <td id="cut-Bplus"></td>
+        <td id="result-Bplus" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>B0</td>
+        <td id="cut-B0"></td>
+        <td id="result-B0" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>B-</td>
+        <td id="cut-Bminus"></td>
+        <td id="result-Bminus" class="result-cell"></td>
+      </tr>
+      <tr>
+        <td>C+</td>
+        <td id="cut-Cplus"></td>
+        <td id="result-Cplus" class="result-cell"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+
+{% block script %}
+<script>
+  // 1) 등급 컷
+  const gradeCutoffs = {
+    "A+": 89.5,
+    "A0": 84.5,
+    "A-": 79.5,
+    "B+": 74.5,
+    "B0": 69.5,
+    "B-": 64.5,
+    "C+": 59.5
+  };
+
+  // 2) 과목 데이터 (탭마다 1과목)
+  //    필요하면 이 배열을 엑셀 과목 목록에 맞게 수정하면 됨
+  let subjects = [];
+  let activeIndex = 0;
+
+  const initialSubjects = [
+    { name: "수학Ⅲ",   midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "수학Ⅳ",   midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "프로그래밍Ⅰ",  midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "물리학Ⅱ",     midScore: null, perfItems: [], midCoef: 3.5, finalCoef: 3.5, results: {} },
+    { name: "화학Ⅱ",     midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "생명과학Ⅱ",     midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "지구과학Ⅱ",     midScore: null, perfItems: [], midCoef: 3, finalCoef: 3, results: {} },
+    { name: "한국사Ⅱ",     midScore: null, perfItems: [], midCoef: 3.5, finalCoef: 0, results: {} },
+    { name: "영어Ⅱ",     midScore: null, perfItems: [], midCoef: 4, finalCoef: 0, results: {} },
+    { name: "국어Ⅱ",     midScore: null, perfItems: [], midCoef: 0, finalCoef: 0, results: {} },
+    { name: "미술",     midScore: null, perfItems: [], midCoef: 0, finalCoef: 0, results: {} }
+  ];
+
+  // 3) DOM 요소 캐시
+  const tabListEl    = () => document.getElementById("tabList");
+  const nameInputEl  = () => document.getElementById("subjectName");
+  const midScoreEl   = () => document.getElementById("midScore");
+  const midCoefEl    = () => document.getElementById("midCoef");
+  const finalCoefEl  = () => document.getElementById("finalCoef");
+  const perfTotalEl  = () => document.getElementById("perfTotal");
+  const perfBodyEl   = () => document.getElementById("perfBody");
+
+  // 4) 초기화
+  window.addEventListener("DOMContentLoaded", () => {
+    // 등급 컷 표시
+    document.getElementById("cut-Aplus").textContent  = gradeCutoffs["A+"].toFixed(1);
+    document.getElementById("cut-A0").textContent     = gradeCutoffs["A0"].toFixed(1);
+    document.getElementById("cut-Aminus").textContent = gradeCutoffs["A-"].toFixed(1);
+    document.getElementById("cut-Bplus").textContent  = gradeCutoffs["B+"].toFixed(1);
+    document.getElementById("cut-B0").textContent     = gradeCutoffs["B0"].toFixed(1);
+    document.getElementById("cut-Bminus").textContent     = gradeCutoffs["B-"].toFixed(1);
+    document.getElementById("cut-Cplus").textContent     = gradeCutoffs["C+"].toFixed(1);
+
+    subjects = initialSubjects.map(s => ({ ...s }));  // 복사
+    activeIndex = 0;
+    renderTabs();
+    renderActiveSubject();
+    attachInputListeners();
+  });
+
+  // 5) 탭 렌더링
+  function renderTabs() {
+    const list = tabListEl();
+    list.innerHTML = "";
+
+    subjects.forEach((subj, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tab" + (idx === activeIndex ? " tab-active" : "");
+      btn.textContent = subj.name && subj.name.trim() !== "" ? subj.name : `과목 ${idx + 1}`;
+      btn.onclick = () => {
+        saveCurrentInputs();   // 현재 탭 값 저장
+        activeIndex = idx;
+        renderTabs();
+        renderActiveSubject();
+      };
+      list.appendChild(btn);
+    });
+  }
+
+// perfItems 배열을 이용해 수행평가 항목 테이블 렌더링
+function renderPerfItems(subj) {
+  const tbody = perfBodyEl();
+  tbody.innerHTML = "";
+
+  const items = subj.perfItems || [];
+  items.forEach((score, idx) => {
+    const tr = document.createElement("tr");
+
+    // 번호
+    const tdIdx = document.createElement("td");
+    tdIdx.textContent = idx + 1;
+    tr.appendChild(tdIdx);
+
+    // 점수 입력
+    const tdScore = document.createElement("td");
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = "0.5";
+    input.value = (score ?? "") === null ? "" : score;
+    input.style.width = "80px";
+    input.oninput = () => {
+      const v = parseFloat(input.value);
+      subj.perfItems[idx] = isNaN(v) ? null : v;
+      updatePerfTotal(subj);
+    };
+    tdScore.appendChild(input);
+    tr.appendChild(tdScore);
+
+    // 삭제 버튼
+    const tdDel = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-delete";
+    btn.textContent = "삭제";
+    btn.onclick = () => {
+      subj.perfItems.splice(idx, 1);
+      renderPerfItems(subj);
+      updatePerfTotal(subj);
+    };
+    tdDel.appendChild(btn);
+    tr.appendChild(tdDel);
+
+    tbody.appendChild(tr);
+  });
+
+  // 합계 반영
+  updatePerfTotal(subj);
+}
+
+// 현재 과목에 수행평가 항목 하나 추가하는 함수
+function addPerfItem() {
+  const subj = subjects[activeIndex];
+
+  if (!Array.isArray(subj.perfItems)) {
+    subj.perfItems = [];
+  }
+
+  // 새 항목은 일단 점수 null (빈 입력칸)
+  subj.perfItems.push(null);
+
+  // 테이블 다시 그리기
+  renderPerfItems(subj);
+}
+
+function updatePerfTotal(subj) {
+  const items = subj.perfItems || [];
+  const sum = items
+    .filter(v => typeof v === "number" && !isNaN(v))
+    .reduce((a, b) => a + b, 0);
+
+  perfTotalEl().value = items.length === 0 ? "" : sum.toFixed(1);
+  subj.perfScore = sum; // 계산용으로 perfScore도 같이 저장
+}
+
+  // 6) 현재 활성 과목의 데이터를 입력창에 채우기
+  function renderActiveSubject() {
+  const subj = subjects[activeIndex];
+
+  nameInputEl().value = subj.name || "";
+  midScoreEl().value  = subj.midScore  ?? "";
+  midCoefEl().value   = subj.midCoef   ?? "";
+  finalCoefEl().value = subj.finalCoef ?? "";
+
+  // 수행평가 항목 + 합계 렌더링
+  if (!Array.isArray(subj.perfItems)) {
+    subj.perfItems = [];
+  }
+  renderPerfItems(subj);
+
+  // 결과 셀
+  updateResultCells(subj.results || {});
+}
+
+
+  // 7) 현재 입력값을 subjects[activeIndex]에 저장
+  function saveCurrentInputs() {
+  const subj = subjects[activeIndex];
+  subj.name      = nameInputEl().value;
+  subj.midScore  = parseFloat(midScoreEl().value);
+  subj.midCoef   = parseFloat(midCoefEl().value);
+  subj.finalCoef = parseFloat(finalCoefEl().value);
+
+  // perfItems는 각 input의 oninput에서 이미 subj.perfItems에 반영되고 있으므로
+  // 여기서는 합계만 다시 한 번 정리
+  updatePerfTotal(subj);
+}
+
+
+  // 8) 입력창 이벤트 리스너 (과목 이름 바꾸면 탭 텍스트도 갱신)
+  function attachInputListeners() {
+    nameInputEl().addEventListener("input", () => {
+      subjects[activeIndex].name = nameInputEl().value;
+      renderTabs();
+    });
+  }
+
+  // 9) 한 과목에 대한 기말 최소 점수 계산
+  function calcNeededFinalScores(midScore, perfScore, midCoef, finalCoef) {
+    const currentTotal = midScore * (midCoef / 10) + perfScore;
+    const finalWeight  = finalCoef / 10;
+    const result = {};
+
+    for (const [grade, cutoff] of Object.entries(gradeCutoffs)) {
+      const diff = cutoff - currentTotal;
+
+      if (diff <= 0) {
+        result[grade] = { value: 0, status: "already" };
+        continue;
+      }
+
+      let needed = Math.ceil(diff / finalWeight);
+
+      if (needed > 100) {
+        result[grade] = { value: "불가능", status: "impossible" };
+      } else {
+        result[grade] = { value: needed, status: "normal" };
+      }
+    }
+    return result;
+  }
+
+  // 10) 결과 셀 업데이트
+  function clearResultCells() {
+    ["Aplus","A0","Aminus","Bplus","B0", "Bminus", "Cplus"].forEach(k => {
+      const td = document.getElementById("result-" + k);
+      td.textContent = "";
+      td.classList.remove("impossible", "already");
+    });
+  }
+
+  function updateResultCells(results) {
+    clearResultCells();
+
+    if (!results) return;
+
+    const mapId = {
+      "A+": "Aplus",
+      "A0": "A0",
+      "A-": "Aminus",
+      "B+": "Bplus",
+      "B0": "B0",
+      "B-": "Bminus",
+      "C+": "Cplus"
+    };
+
+    for (const [grade, info] of Object.entries(results)) {
+      const id = mapId[grade];
+      if (!id) continue;
+
+      const td = document.getElementById("result-" + id);
+      td.textContent = info.value;
+      td.classList.remove("impossible", "already");
+
+      if (info.status === "impossible") {
+        td.classList.add("impossible");
+      } else if (info.status === "already") {
+        td.classList.add("already");
+        td.textContent = `${info.value} (이미 확보)`;
+      }
+    }
+  }
+
+  // 11) "이 과목 계산" 버튼 동작
+  function calculateActive() {
+  saveCurrentInputs();
+  const subj = subjects[activeIndex];
+
+  const perf = subj.perfScore; // 합계
+
+  if (
+    isNaN(subj.midScore)  || isNaN(perf) ||
+    isNaN(subj.midCoef)   || isNaN(subj.finalCoef)
+  ) {
+    alert("중간 점수, 수행 항목 점수, 중간/기말 계수를 모두 입력해 주세요.");
+    return;
+  }
+
+  const results = calcNeededFinalScores(
+    subj.midScore,
+    perf,
+    subj.midCoef,
+    subj.finalCoef
+  );
+
+  subj.results = results;
+  updateResultCells(results);
+}
+
+
+  // 12) 과목 추가 / 현재 과목 삭제
+  function addSubject() {
+  saveCurrentInputs();
+  subjects.push({
+    name: "",
+    midScore: null,
+    perfItems: [],
+    midCoef: 3,
+    finalCoef: 3,
+    results: {}
+  });
+  activeIndex = subjects.length - 1;
+  renderTabs();
+  renderActiveSubject();
+}
+
+
+  function deleteCurrentSubject() {
+    if (subjects.length <= 1) {
+      alert("최소 1개 과목은 남겨 두어야 합니다.");
+      return;
+    }
+    subjects.splice(activeIndex, 1);
+    if (activeIndex >= subjects.length) {
+      activeIndex = subjects.length - 1;
+    }
+    renderTabs();
+    renderActiveSubject();
+  }
+</script>
+{% endblock %}

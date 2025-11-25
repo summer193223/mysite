@@ -1,0 +1,197 @@
+/* 전체 레이아웃/버튼 공통 */
+
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 12px;
+  background: #f5f7fb;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.2rem;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 1.2rem;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+}
+
+th, td {
+  border: 1px solid #dde2ee;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+th {
+  background: #eef1fb;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(odd) {
+  background: #fafbff;
+}
+
+input[type="number"],
+input[type="text"] {
+  width: 80px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  border: 1px solid #c5cbe3;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+input.subject-name {
+  width: 90px;
+  text-align: left;
+}
+
+/* 버튼 공통 */
+
+.btn {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #4b6bff;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
+}
+
+.btn:hover {
+  background: #3c57d8;
+  box-shadow: 0 3px 8px rgba(75,107,255,0.4);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #4b6bff;
+  border: 1px solid #4b6bff;
+  margin-left: 4px;
+}
+
+.btn-secondary:hover {
+  background: #e8edff;
+}
+
+.btn-delete {
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #d9534f;
+  background: #fff;
+  color: #d9534f;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #ffe6e6;
+}
+
+/* 결과/메모 */
+
+.note {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.result-cell {
+  font-weight: 600;
+}
+
+.impossible {
+  color: #d9534f;
+}
+
+.already {
+  color: #28a745;
+}
+
+/* 세로 탭 레이아웃 */
+
+.card-layout {
+  display: flex;
+  gap: 16px;
+}
+
+.tab-column {
+  display: flex;
+  flex-direction: column;
+  width: 150px;
+  border-right: 1px solid #dde2ee;
+  padding-right: 8px;
+  gap: 6px;
+}
+
+.subject-panel {
+  flex: 1;
+  padding-left: 8px;
+}
+
+/* 탭 버튼 */
+
+.tab {
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #c5cbe3;
+  background: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tab + .tab {
+  margin-top: 4px;
+}
+
+.tab-active {
+  background: #4b6bff;
+  color: #ffffff;
+  border-color: #4b6bff;
+}
+
+/* 탭 아래 버튼 영역 */
+
+.tab-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+/* 여기만 현재 과목 삭제 버튼 두께 조절하는 부분! */
+.tab-actions .tab-delete-btn {
+  padding-top: 6px;   /* 위아래 두께 조절 */
+  padding-bottom: 6px;
+  /* 가로는 그대로 두고 싶으면 좌우 padding은 건드릴 필요 없음 */
+}

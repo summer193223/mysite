@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}기말고사 최저점 계산기{% endblock %}</title>
+
+  <!-- 여기 한 줄로 CSS 불러오기 -->
+  <link rel="stylesheet" href="{% static 'calculator/style.css' %}">
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  {% block content %}{% endblock %}
+  {% block script %}{% endblock %}
+</body>
+</html>
